@@ -1,0 +1,22 @@
+;; (check-function-type function (type -> type))
+
+
+(define int array-length ([arr : (array bool)])
+  (array-size arr))
+
+(define (array int) array-make ([len : int] [init : int])
+  (make-array len init))
+
+(define int array-at-test ([a : (array int)] [i : int])
+  (array-at a i))
+
+(define int array-put-test ([a : (array int)] [i : int] [e : int])
+  (array-put a i e))
+
+
+(check-function-type array-length ((array bool) -> int))
+(check-function-type array-make (int int -> (array int)))
+(check-function-type array-put-test((array int) int int -> int))
+(check-function-type array-at-test((array int) int -> int))
+
+
