@@ -1645,16 +1645,20 @@ val _ = op eqTypes : tyex list * tyex list -> bool
 
 (* type checking for {\tuscheme} ((prototype)) 366 *)
 fun typeof  (exp, kindenv, tyenv) =  let fun ty (LITERAL v) = (case v of 
-                                                                    NIL => raise LeftAsExercise "hi" 
+                                                                    NIL => FORALL(["'a"], listtype tvA)
                                                                   | (BOOLV bool) => booltype
                                                                   | (NUM int) => inttype
                                                                   | (SYM name) => symtype
-                                                                  | (PAIR (v1, v2)) => raise LeftAsExercise "hi"
                                                                   | (PAIR (v, NIL)) => listtype (ty (LITERAL v))
-                                                                  | (CLOSURE (v1, v2)) => raise TypeError "hi"
-                                                                  | (PRIMITIVE prim) => raise TypeError "hi"
-                                                                  | (ARRAY arr) => raise TypeError "hi")
-                                                                  (* | _ = raise TypeError "Badly formed list" *)
+                                                                  | (PAIR (v1, v2))  => 
+                                                                          let val taus      = ty (LITERAL v1)
+                                                                              val tausList  = ty (LITERAL v2)
+                                                                          in if eqType(tausList, listtype taus) then 
+                                                                                tausList 
+                                                                              else 
+                                                                                raise TypeError "PAIR not of the same type"
+                                                                          end
+                                                                  | _ => raise TypeError ("FIXME:"))
                         | ty (VAR s) = (find (s, tyenv))
                         | ty (SET (s, exp)) = let val tau = ty exp 
                                               in if (find (s, tyenv)) = tau then tau else raise TypeError "FIXME:"
@@ -1684,11 +1688,10 @@ fun typeof  (exp, kindenv, tyenv) =  let fun ty (LITERAL v) = (case v of
                                                           val xs = List.map (fn (x, tau) => x) tyBinds
                                                       in FUNTY(taus, typeof (e1, kindenv, tyenv <+> mkEnv(xs, taus)))
                                                       end 
-                        | ty (TYLAMBDA (names, exp)) = raise LeftAsExercise
-                        (*make sure none of the names are free in tyenv. call tyof with a new kindenv on exp. using the resulting tau, call instantiate on all the names*)
+                        | ty (TYLAMBDA (names, exp)) = raise TypeError "FIXME:"
                         | ty (TYAPPLY (exp, tyexs)) = let val taus = List.map snd tyenv
                                                           val checkTypes = List.foldl (fn (x, (bool, i)) => (bool andalso (List.exists (fn (tau) => eqType(x, tau)) taus), i + 1)) (true, 0) tyexs
-                                                      in if checkTypes then instantiate(ty exp, tyexs, kindenv) else raise TypeError "FIXME:"
+                                                      in instantiate(ty exp, tyexs, kindenv) 
                                                       end
                 in ty exp
                 end 

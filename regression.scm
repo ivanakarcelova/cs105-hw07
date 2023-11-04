@@ -34,6 +34,7 @@
 
 ;; step 11
 (check-type (let ([x 3]) (+ x 2)) int)
+(check-type-error (let ([g 2] [y (+ g 3)]) (+ g 2)) int)
 (check-type-error (let ([y 4] [x #f]) (+ x y)))
 
 ;; step 12
@@ -55,30 +56,52 @@
 ;; step 14
 ;; LETSTAR
 (check-type (let* ([x 2] [y (+ x 3)]) (+ x 2)) int)
+(check-type (let* ([g 2] [y (+ g 3)]) (+ g 2)) int)
 (check-type (let* () 2) int)
 (check-type-error (let* ([y 4] [x #f]) (+ x y)))
 
 ;; step 15 
 ;; LETREC 
+(check-type (letrec ([g: int] 2 [y (+ g 3)]) (+ g 2)) int)
 
+;; have a lambda function 
 
 ;; step 16
 ;; VALREC and DEFINE
 ;; VALREC
 (val value 1)
 (val-rec [valrec1 : (int -> int)] (lambda ([value : int]) (+ value 1)))
-
 (check-type valrec1 (int -> int))
 
 ;; DEFINE
 (define int addTwo ([x : int]) (+ x 2))
-(check-type addTwo (int -> int)) ;; FIXME:
+(check-type addTwo (int -> int)) 
+
+(define int divideTwo ([x : int]) (/ x 2))
+(check-type divideTwo (int -> int)) 
+
+;;(define bool even? ([x : int]) (if ([@ = int] (mod x 2) 0) #t #f))
+;;(check-type even? (int -> bool)) ;; FIXME: okay to check primitive functions
 
 ;; step 17 
 ;; TYAPPLY and TYLAMBDA
 ;; check TYAPPLY 
-;; (check-type [@ + int] ((list int) -> int))
+(check-type [@ car int] ((list int) -> int))
+
+;; check TYLAMBDA
+;; (check-type (type-lambda ['a] (lambda ([w : 'a]) w)) (forall ['a] ('a -> 'a)))
+
  
+;; step 18
+;; LITERAL
+;; NIL
+(check-type '() (forall ['a] (list 'a)))
+
+;; PAIRS 
+(check-type '(1) (list int))
+(check-type '(1 2) (list int))
+(check-type '(#t #t #f) (list bool))
+
 
 
 
