@@ -1691,7 +1691,7 @@ fun typeof  (exp, kindenv, tyenv) =  let fun ty (LITERAL v) = (case v of
                         | ty (TYLAMBDA (names, exp)) = raise TypeError "FIXME:"
                         | ty (TYAPPLY (exp, tyexs)) = let val taus = List.map snd tyenv
                                                           val checkTypes = List.foldl (fn (x, (bool, i)) => (bool andalso (List.exists (fn (tau) => eqType(x, tau)) taus), i + 1)) (true, 0) tyexs
-                                                      in instantiate(ty exp, tyexs, kindenv) 
+                                                      in (case checkTypes of (bool, _) => if bool then instantiate(ty exp, tyexs, kindenv) else raise TypeError "FIXME:")
                                                       end
                 in ty exp
                 end 
