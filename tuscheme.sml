@@ -1658,21 +1658,34 @@ fun typeof  (exp, kindenv, tyenv) =  let fun ty (LITERAL v) = (case v of
                                                                               else 
                                                                                 raise TypeError "PAIR not of the same type"
                                                                           end
-                                                                  | _ => raise TypeError ("FIXME:"))
+                                                                  | _ => raise TypeError ("Not a valid type FIXME:"))
                         | ty (VAR s) = (find (s, tyenv))
                         | ty (SET (s, exp)) = let val tau = ty exp 
-                                              in if (find (s, tyenv)) = tau then tau else raise TypeError "FIXME:"
+                                                  val sTau = (find (s, tyenv))
+                                              in if eqType(sTau, tau) then tau else raise TypeError ("Expression in SET is type " ^ typeString tau ^ " when it should be of type " ^ typeString sTau)
                                               end
                         | ty (IFX (e1, e2, e3)) = (case ty e1 of                      
                                                       tau => if eqType(tau, booltype) then 
-                                                               if eqType(ty e2, ty e3) then ty e2 else raise TypeError "FIXME:"
-                                                             else raise TypeError "FIXME:")
+                                                               if eqType(ty e2, ty e3) then ty e2 
+                                                               else raise TypeError 
+                                                                    ("Type of e2 and e2 in IF expression do not match: "
+                                                                     ^ typeString (ty e2) ^ 
+                                                                     " and " ^ typeString (ty e3))
+                                                             else raise TypeError 
+                                                                  ("Expression e1 in IF expression is type " 
+                                                                  ^ typeString tau ^ " when it should be " 
+                                                                  ^ typeString booltype))
                         | ty (WHILEX (e1, e2)) = let val tau2 = ty e2
-                                                 in if eqType(booltype, ty e1) then unittype else raise TypeError "FIXME:"
+                                                     val tau1 = ty e1
+                                                 in if eqType(booltype, tau1) then unittype 
+                                                    else raise TypeError 
+                                                        ("Expression e1 in WHILE is type " ^ typeString tau1 ^
+                                                         " when it should be type " ^ typeString booltype)
                                                  end
                         | ty (BEGIN exs) = List.last (List.map ty exs)
                         | ty (APPLY (e1, e2s)) = (case ty e1 of 
-                                                  FUNTY(tys, tyex) => if eqTypes((List.map ty e2s), tys) then tyex else raise TypeError "FIXME:"
+                                                  FUNTY(tys, tyex) => if eqTypes((List.map ty e2s), tys) then tyex 
+                                                                      else raise TypeError ("")
                                                   | _ => raise TypeError "FIXME:")
                         | ty (LETX (LET, tyBinds, e1)) = typeof (e1, kindenv, tyenv <+> mkEnv(List.map (fn (x, e) => x) tyBinds, 
                                                                 (List.map (fn (x, e) => ty e) tyBinds)))
