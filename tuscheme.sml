@@ -1658,7 +1658,7 @@ fun typeof  (exp, kindenv, tyenv) =  let fun ty (LITERAL v) = (case v of
                                                                               else 
                                                                                 raise TypeError "PAIR not of the same type"
                                                                           end
-                                                                  | _ => raise TypeError ("Not a valid type FIXME:"))
+                                                                  | _ => raise TypeError ("Not a valid type"))
                         | ty (VAR s) = (find (s, tyenv))
                         | ty (SET (s, exp)) = let val tau = ty exp 
                                                   val sTau = (find (s, tyenv))
@@ -1685,8 +1685,11 @@ fun typeof  (exp, kindenv, tyenv) =  let fun ty (LITERAL v) = (case v of
                         | ty (BEGIN exs) = List.last (List.map ty exs)
                         | ty (APPLY (e1, e2s)) = (case ty e1 of 
                                                   FUNTY(tys, tyex) => if eqTypes((List.map ty e2s), tys) then tyex 
-                                                                      else raise TypeError ("")
-                                                  | _ => raise TypeError "FIXME:")
+                                                                      else raise TypeError 
+                                                                           ("Type error with arguments in APPLY. Expected arguement types do not match provided expressions")
+                                                  | _ => raise TypeError 
+                                                         ("Expression e1 in APPLY should be type FUNTY and is instead type " 
+                                                         ^ typeString (ty e1) ))
                         | ty (LETX (LET, tyBinds, e1)) = typeof (e1, kindenv, tyenv <+> mkEnv(List.map (fn (x, e) => x) tyBinds, 
                                                                 (List.map (fn (x, e) => ty e) tyBinds)))
                         | ty (LETX (LETSTAR, (x, e)::xs, e2)) = ty (LETX (LET, [(x, e)],(LETX (LETSTAR, xs, e2))))
@@ -1695,16 +1698,27 @@ fun typeof  (exp, kindenv, tyenv) =  let fun ty (LITERAL v) = (case v of
                                                           val xs = List.map (fn ((x, tau), exp) => x) tyBinds
                                                           val newtyexp = tyenv <+> mkEnv(xs, taus)
                                                           val checkEs = List.map (fn ((x, tau), exp) => typeof (exp, kindenv, newtyexp)) tyBinds
-                                                      in if eqTypes(taus, checkEs) then typeof (e, kindenv, newtyexp) else raise TypeError "FIXME:"
+                                                      in if eqTypes(taus, checkEs) then typeof (e, kindenv, newtyexp) 
+                                                         else raise TypeError 
+                                                              ("Type error in LETREC. Type(s) provided in LETREC binding(s) do not match their accompanying expression")
                                                       end 
                         | ty (LAMBDA (tyBinds, e1)) = let val taus = List.map (fn (x, tau) => tau) tyBinds
                                                           val xs = List.map (fn (x, tau) => x) tyBinds
                                                       in FUNTY(taus, typeof (e1, kindenv, tyenv <+> mkEnv(xs, taus)))
                                                       end 
-                        | ty (TYLAMBDA (names, exp)) = raise TypeError "FIXME:"
+                        | ty (TYLAMBDA (names, exp)) = let val typeList = map (fn (name) => TYPE) names
+                                                           val newKind = kindenv <+> mkEnv(names, typeList)
+                                                           val t1 = typeof(exp, newKind, tyenv)
+                                                           val freeVars = freetyvarsGamma (tyenv)
+                                                        in case inter(freeVars, names) of [] => FORALL(names, t1)
+						                                                                              | _ => raise TypeError 
+                                                                                                 ("Type error in TYLAMBDA. A type provided is free in the type environment")
+                                                        end
                         | ty (TYAPPLY (exp, tyexs)) = let val taus = List.map snd tyenv
                                                           val checkTypes = List.foldl (fn (x, (bool, i)) => (bool andalso (List.exists (fn (tau) => eqType(x, tau)) taus), i + 1)) (true, 0) tyexs
-                                                      in (case checkTypes of (bool, _) => if bool then instantiate(ty exp, tyexs, kindenv) else raise TypeError "FIXME:")
+                                                      in (case checkTypes of (bool, _) => if bool then instantiate(ty exp, tyexs, kindenv) 
+                                                                                                  else raise TypeError 
+                                                                                                        ("Type error in TYAPPLY. A provided type cannot be found in the type environment"))
                                                       end
                 in ty exp
                 end 
@@ -1712,12 +1726,12 @@ fun typdef (def, kindenv, tyenv) = let fun ty (VAL (n, e)) = let val tye = typeo
                                                              in  (bind (n, tye, tyenv), typeString tye)
                                                              end  
                                          | ty (VALREC (n, tyex, exp)) = (case exp of LAMBDA(_, _) => let val newenv = bind (n, tyex , tyenv)
-                                                                                                              val texp   = typeof(exp, kindenv, newenv)
+                                                                                                         val texp   = typeof(exp, kindenv, newenv)
                                                                                                 in if eqType(texp, tyex) then (bind (n, tyex, tyenv), typeString tyex)
-                                                                                                    else raise TypeError
-                                                                                                          "FIXME:"
+                                                                                                   else raise TypeError
+                                                                                                          "Type error in VALREC. The type of the LAMBDA does not match the type provided with VALREC"
                                                                                                 end
-                                                                                    | _ => raise TypeError "FIXME:")
+                                                                                    | _ => raise TypeError "The provided expression is not type LAMBDA")
                                          | ty (EXP e) = typdef (VAL("it", e), kindenv, tyenv)
                                          | ty (DEFINE (n, tyex1, (xs, exp))) = ty (VALREC(n, FUNTY(List.map (fn (n, tyexp) => tyexp) xs, tyex1), LAMBDA(xs, exp)))
                                    in ty def
@@ -2617,7 +2631,7 @@ val _ = op primBasis : basis
   in  (kinds, types, values)
   end
 val primitiveBasis = primBasis
-val predefined_included = false
+val predefined_included = true
 val predefs   = if not predefined_included then [] else
                  [ ";  predefined {\\tuscheme} functions 359b "
                  , "(val list1 (type-lambda ['a] (lambda ([x : 'a])"
