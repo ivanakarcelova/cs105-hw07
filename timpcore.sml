@@ -1427,25 +1427,45 @@ fun typeof (e, globals, functions, formals) =
              end
 
 (* function [[ty]], checks type of expression given $\itenvs$ ((prototype)) 348 *)
-      | ty (AAT (a, i))        = (case ty a of 
-                                    ARRAYTY tau => (case ty i of 
-                                                    INTTY => tau
-                                                    | _ => raise TypeError ("FIXME:"))
-                                    | _ => raise TypeError 
-                                           ("FIXME:"))
+      | ty (AAT (a, i))        = let val tau1 = ty a 
+                                     val tau2 = ty i 
+                                 in  if eqType((ARRAYTY tau1), tau1) then
+                                        if eqType(INTTY, tau2) then
+                                           tau1
+                                        else
+                                           raise TypeError
+                                             ("Expression in at function has type "
+                                             ^ typeString tau2 ^ ", which should be "
+                                             ^ typeString INTTY)
+                                     else
+                                        raise TypeError
+                                         ("Expression in at function has type "
+                                         ^ typeString tau1 ^ ", which should be "
+                                         ^ typeString (ARRAYTY tau1))
+                                 end
       | ty (APUT (a, i, e))    = (case ty a of
-                                     ARRAYTY tau => (case ty i of
-                                                    INTTY => tau
-                                                    | _ => raise TypeError ("FIXME:"))
-                                   | _ => raise TypeError ("FIXME:"))
+                                     ARRAYTY _ => (case ty i of
+                                                    INTTY => (case ty e of 
+                                                              tau => tau)
+                                                    | _ => raise TypeError 
+                                                            ("Expression in put function has type "
+                                                            ^ typeString (ty i) ^ ", which should be "
+                                                            ^ typeString INTTY))
+                                   | _ => raise TypeError ("Expression in put function has type "
+                                                            ^ typeString (ty a) ^ ", which should be "
+                                                            ^ typeString (ARRAYTY (ty a))))
       | ty (AMAKE (len, init)) = (case ty len of
                                   INTTY => (ARRAYTY (ty init))
                                   | _ => raise TypeError 
-                                  ("FIXME:"))
+                                          ("Expression in array-make has type "
+                                          ^ typeString (ty len) ^ ", which should be "
+                                          ^ typeString INTTY))
       | ty (ASIZE a)           = (case ty a of 
                                   ARRAYTY _ => INTTY
                                   | _ => raise TypeError
-                                  ("FIXME:")) 
+                                          ("Expression in size function has type "
+                                          ^ typeString (ty a) ^ ", whcih should be "
+                                          ^ typeString (ARRAYTY (ty a))))
 (* type declarations for consistency checking *)
 val _ = op eqType  : ty      * ty      -> bool
 val _ = op eqTypes : ty list * ty list -> bool
